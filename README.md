@@ -1,5 +1,5 @@
 # cxl_prefetch
-## Datasets
+## Datasets
 - From ChampSim for the ML Prefetching Competition at [https://github.com/Quangmire/ChampSim](https://github.com/Quangmire/ChampSim)
 - sim/traces/trans/ 파일들을 이용하여 다음과 같은 순서로 변환
   - ~ 실행하여 .vaddr 추출
