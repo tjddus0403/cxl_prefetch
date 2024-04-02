@@ -6,7 +6,8 @@ from prefetcher_info import *
 import settings as st
 import preprocessor as pp
 import sys
-
+import pandas as pd
+from ast import literal_eval
 
 PF_NONE = 0
 PF_NLINE = 1
@@ -16,7 +17,8 @@ PF_RA = 4
 PF_OC = 5
 PF_ALL = 6
 
-
+def str_to_list(strlist):
+    return literal_eval(strlist)
 
 def get_pf(choice, conf):
 
@@ -65,9 +67,20 @@ def _cache_sim(cache):
                 cache.cmiss_cnt[cache.cmap[k]] = 0
                 cache.cpf_hit_cnt[cache.cmap[k]] = 0
 
+            # 여기서 clstm 결과 파일 열고, 밑에 access 시에 함께 전달해줘야 할 듯
+            # clstm_result = pd.read_csv("./sykim/result_addr.csv")
+            # clstm_result['pred'] = clstm_result['pred'].apply(str_to_list)
+            
             with open(filename, 'r') as df:
                 addr = df.readline()
+                num = 0
                 while addr:
+                    # print("demand addr : ", addr)
+                    # print("clstm result : ", clstm_result['pred'][num])
+                    # if num == 3:
+                    #     break
+                    # cache.access(addr, clstm_result['pred'][num])
+                    num+=1
                     cache.access(addr)
                     addr = df.readline()
 

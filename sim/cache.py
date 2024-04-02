@@ -40,6 +40,7 @@ import copy
 
 class Cache:
     def __init__(self, capacity: int, unit, conf):
+        print("cache slots : ", capacity)
         self.slots = capacity
         self.unit = unit # 캐쉬 내 데이터 관리 단위 
 
@@ -84,6 +85,7 @@ class LRUCache(Cache):
         self.pf_n = pf.aggressiveness
         self.pf_buff = [] # maintains prefetched data 
         self.pf_buff_slots = int(self.slots * 0.2)
+        print("pf_buff slots : ", self.pf_buff_slots)
         # self.pf_buff_slots = 0
         self.pf_hits = 0
 
@@ -124,13 +126,17 @@ class LRUCache(Cache):
         if self.pf.code == LEAP:
             self.pf.reset_()        
 
+    # def access(self, addr, clstm_result): ## 여기에 인자로 clstm의 결과도 줘야할듯?
     def access(self, addr):
+        ## 여기서 먼저 clstm의 결과를 pf_buff & dlist에 적용하고 시작 (clstm = 매 시점 프리페치 수행)
         self.refs += 1 
         addr = int(addr)
         is_hit = 0 # miss
         is_pf_hit = 0        
         closest_lpn = -1
         closest_rank = -1
+        # code for clstm
+        pf_data_num = 0
 
         # if(self.refs % 10000 == 0):
         #     print("refs = ", self.refs, "cache_size = ", len(self.dlist), "hits = ", self.hits, "hit_ratio = ", self.hits/self.refs)
@@ -194,13 +200,25 @@ class LRUCache(Cache):
                 # self.distance.append(int(fw_dist))
                 closest_lpn = next_lpn
         
+        # code for clstm
+        # # 여기서 clstm의 pf_data 가져옴
+        #     # print("clstm_data_num : ", len(clstm_result), "\nclstm_data : ", clstm_result)
+        #     for clstm_pd in clstm_result:
+        #         # if pd not in self.pf_buff:
+        #         pd = int(clstm_pd)
+        #         if pd not in self.pf_buff and pd not in self.dlist:
+        #             self.pf_buff.append(pd)
+        #             pf_data_num += 1
+        #         if len(self.pf_buff) > self.pf_buff_slots:
+        #             self.pf_buff.pop(0) # FIFO 
+            
         # hit 
         if lpn in self.dlist:
-            # hit인 경우, cstate 추출 (hit임을 명시)
+            # # hit인 경우, cstate 추출 (hit임을 명시)
             # if len(self.dlist)==self.slots:
             #     ofname = "./deep_learning_data/" + self.trc_file + ".cstate"
             #     cstate_hit = copy.deepcopy(self.dlist)
-            #     cstate_hit.append('hit')
+            #     # cstate_hit.append('hit')
             #     cstate_hit.append(lpn)
             #     ut.list_to_file_append(cstate_hit, ofname)
 
@@ -221,14 +239,14 @@ class LRUCache(Cache):
             
             closest_rank = self.dlist.index(closest_lpn) if closest_lpn >= 0 else -1
             self.distance.append([self.refs, is_hit, is_pf_hit, dist, lpn, closest_lpn, closest_rank])
-
+                    
         else: # miss 
             # prefetch hit  
             if lpn in self.pf_buff: 
                 # if len(self.dlist)==self.slots:
                 #     ofname = "./deep_learning_data/" + self.trc_file + ".cstate"
                 #     cstate_pf_hit = copy.deepcopy(self.dlist)
-                #     cstate_pf_hit.append('pf_hit')
+                #     # cstate_pf_hit.append('pf_hit')
                 #     cstate_pf_hit.append(lpn)
                 #     ut.list_to_file_append(cstate_pf_hit, ofname)
 
@@ -246,7 +264,7 @@ class LRUCache(Cache):
                     # 연속해서 hit 256번 발생했을 때 read-ahead 끔
                     if self.pf.hit_counter == 256:
                         self.pf.readaheadOff()
-
+            # prefetch miss
             else:
                 # pf_miss 여기에서 cache state 로그를 남겨야 함. 
                 # 최근 history 도 로그를 남기면 좋을텐데. 일단 cache state 로만 해보자. 
@@ -258,11 +276,12 @@ class LRUCache(Cache):
                 #     cstate_pf_miss.append(lpn)
                 #     ut.list_to_file_append(cstate_pf_miss, ofname)
 
-                if len(self.dlist) == self.slots:
-                    ofname = "./deep_learning_data/" + self.trc_file + ".cstate"
-                    self.dlist.append(lpn)
-                    ut.list_to_file_append(self.dlist, ofname)
-                    self.dlist.pop(-1)
+                # # 프리페치 미스에 대한 cstate 데이터 얻기 위한 코드 (deep)
+                # if len(self.dlist) == self.slots:
+                # #     ofname = "./deep_learning_data/" + self.trc_file + ".cstate"
+                #     self.dlist.append(lpn)
+                # #     ut.list_to_file_append(self.dlist, ofname)
+                #     self.dlist.pop(-1)
                     
                 
                 if len(self.cmap) > 0:                
@@ -311,7 +330,7 @@ class LRUCache(Cache):
             self.closest_rank.append(closest_rank)
 
             self.distance.append([self.refs, is_hit, is_pf_hit, dist, lpn, closest_lpn, closest_rank])
-            # replacement 
+            # replacement
             if len(self.dlist) == self.slots:
                 # oldest = self.stack.pop(0)
                 evicted_lpn = self.dlist.pop(-1)
@@ -347,12 +366,16 @@ class LRUCache(Cache):
                 self.pf.prev_page = lpn
 
             pf_data = self.pf.prefetch(int(lpn))
-
+            # 여기에서 leap과 clstm의 pf_data 데이터 결합
+            # clstm의 pf_data는 문자열임에 주의 (정수형변환 필요)
+            # print("pf_data_num : ", len(pf_data), "\npf_data : ", pf_data)
+            # print("type :", type(pf_data[0]))
             for pd in pf_data:
                 # if pd not in self.pf_buff:
                 if pd not in self.pf_buff and pd not in self.dlist:
                     self.pf_buff.append(pd)
-                
+                    # code for clstm
+                    pf_data_num+=1
                 if len(self.pf_buff) > self.pf_buff_slots:
                     self.pf_buff.pop(0) # FIFO 
 
@@ -361,7 +384,10 @@ class LRUCache(Cache):
                         self.pf.aggressControl("mp")            
 
             # print(lpn, self.pf_buff)
-
+        # code for clstm
+        ofname = "./deep_learning_data/pf_data_num_leap.txt"
+        ut.list_to_file_append([pf_data_num], ofname)
+        
         # Set a bit array for the accessed line 
         pos = (addr % self.unit) // st.line
 
