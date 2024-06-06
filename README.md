@@ -1,6 +1,6 @@
 # cxl_prefetch
 ## 실행 방법
-*final 디렉토리 내, 프로그램 동작 방법 참고*
+*final 디렉토리 내, 코드 사용 및 프로그램 동작 방법 문서 참고*
 
 ## Development Environment
 <p align="center">
