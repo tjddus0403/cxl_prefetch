@@ -34,8 +34,6 @@ def get_pf(choice, conf):
         prefetcher = pf.LinuxReadAhead()
     elif choice == PF_CLSTM:
         prefetcher = pf.LeapPrefetcher()
-    elif choice == PF_ONLY:
-        prefetcher = pf.LeapPrefetcher()
     else:
         print("Wrong choice for prefetcher")
         sys.exit()
@@ -68,8 +66,6 @@ def _cache_sim(cache):
                 while addr:
                     if choice == PF_CLSTM:
                         cache.access_clstm(addr, clstm_result['pred'][num])
-                    elif choice == PF_ONLY:
-                        cache.access_only(addr, clstm_result['pred'][num])
                     else:
                         cache.access(addr)
                     num+=1
